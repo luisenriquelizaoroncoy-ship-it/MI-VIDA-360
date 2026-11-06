@@ -1,20 +1,36 @@
-# MI VIDA 360 — conexión con Firebase
+# MI VIDA 360 — Firebase conectado al código
 
-La aplicación actual sigue funcionando sin cuenta mientras se configura la nube. **No borres datos del teléfono.**
+## Estado
+- Proyecto Firebase: `mi-vida-360-9b9ab` (plan Spark).
+- App Web: configurada en `firebase-config.js` (identificadores públicos).
+- Authentication: correo/contraseña y Google, habilitados en la consola según capturas del propietario.
+- Firestore: base `(default)` creada; reglas de `firestore.rules` publicadas según captura del propietario.
+- Código: Firebase Authentication + sincronización en el documento `users/{uid}`.
+- Hosting: GitHub Pages; el sitio publicado debe habilitarse/configurarse en los ajustes de Pages del repositorio.
 
-## Configuración manual pendiente (solo propietario de Firebase)
+## Paso pendiente: dominio de autenticación
+Para usar el botón «Continuar con Google», abre:
+Firebase Console → Authentication → Configuración → Dominios autorizados → Agregar dominio:
+`luisenriquelizaoroncoy-ship-it.github.io`
 
-1. Firebase Console → MI VIDA 360 → **Configuración del proyecto** → **Tus aplicaciones** → icono **Web (</>)** → nombre `mi-vida-360-web`. No es necesario activar Firebase Hosting (seguimos con GitHub Pages).
-2. Copia **firebaseConfig** (apiKey, authDomain, projectId, appId, etc.). Son identificadores públicos de la aplicación web, no una clave privada de servidor. Pásaselos al asistente para integrarlos en `firebase-config.js`. **No compartas credenciales de cuenta, contraseñas ni claves de cuenta de servicio.**
-3. Firebase Console → **Authentication** → **Sign-in method** → habilita **Correo electrónico/Contraseña**.
-4. Firebase Console → **Firestore Database** → crear base de datos con ubicación elegida; establecer reglas de seguridad como el archivo `firestore.rules` de este repositorio y **Publicar**.
-5. Firebase Authentication → **Settings → Authorized domains** → añade el dominio de la página donde se aloja la app, por ejemplo `luisenriquelizaoroncoy-ship-it.github.io`, si no está.
-6. Prueba con una cuenta nueva y verifica que los datos aparezcan en otro dispositivo antes de migrar tus registros de uso habitual.
+Guarda los cambios. No incluyas `https://` ni la ruta `/MI-VIDA-360/` en ese campo.
 
-## Seguridad y costos
+## Publicación GitHub Pages
+En el repositorio, abre Settings → Pages. En «Build and deployment», selecciona «GitHub Actions». El archivo `.github/workflows/publish-pages.yml` se encarga de publicar cada cambio en main.
+Dirección esperada: https://luisenriquelizaoroncoy-ship-it.github.io/MI-VIDA-360/
 
-- No activar el modo de prueba público en Firestore para almacenar datos personales.
-- Usar reglas que restringen el documento de cada usuario a su propio UID.
-- Firebase Spark y GitHub Pages son opciones gratuitas sujetas a sus políticas y límites actuales.
-- El respaldo JSON de la app sigue siendo importante.
-- Notificaciones de pago *en la app* están disponibles; notificaciones push con la app cerrada requieren configuración adicional y pruebas en iPhone.
+## Cuentas y recuperación
+- El usuario registra email y contraseña (mínimo 6 caracteres) o utiliza Google.
+- La opción «¿Olvidaste tu contraseña?» envía un correo desde Firebase Authentication.
+- Cada usuario tiene documento propio en `/users/{uid}`.
+- Al iniciar una cuenta nueva y si existen registros locales anteriores en el mismo navegador, se ofrece importarlos. No se eliminan automáticamente los registros anteriores.
+- En ajustes puede exportarse un respaldo JSON. El modo «sin cuenta» conserva datos solo en ese navegador y no los sincroniza.
+- Para comparar sincronización, registra un gasto de prueba en laptop, entra con la MISMA cuenta en el iPhone y comprueba el gasto.
+- No borres la app instalada antes de exportar un respaldo.
+
+## Limitaciones
+- Las notificaciones del navegador se comprueban al abrir la app; todavía no hay push con la app cerrada.
+- Las escrituras simultáneas en varios dispositivos usan el último guardado confirmado; para uso personal evita editar el mismo registro al mismo tiempo en dos equipos.
+- La cuenta en la nube necesita Internet. Existe una copia local de respaldo en el mismo navegador.
+- El código no contiene credenciales de administrador ni contraseñas del usuario.
+- Spark y GitHub Pages tienen límites de uso y pueden cambiar; revisa su política si aumentan usuarios o tráfico.

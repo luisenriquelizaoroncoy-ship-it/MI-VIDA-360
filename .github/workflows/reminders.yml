@@ -5,6 +5,12 @@ on:
     # GitHub Actions puede retrasar o saltar ejecuciones programadas.
     - cron: '3,18,33,48 * * * *'
   workflow_dispatch:
+  # Al publicar cambios en el envío, procesa los avisos que correspondan a esa hora.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/reminders.yml'
+      - 'scripts/send-reminders.cjs'
 permissions:
   contents: read
 concurrency:

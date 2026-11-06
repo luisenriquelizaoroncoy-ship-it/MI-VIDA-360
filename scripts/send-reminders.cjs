@@ -79,14 +79,20 @@ function collect(data,old,now){
 }
 async function run(){
  const now=limaNow(),users=await db.collection('users').get();
- let sent=0,skipped=0,failed=0,eligible=0;
+ let sent=0,failed=0,eligible=0;
+ let unregistered=0,nothingDue=0;
+ const deliveryErrors=new Map();
+ function countError(error){
+  const code=String(error?.code||'unknown');
+  deliveryErrors.set(code,(deliveryErrors.get(code)||0)+1);
+ }
  for(const user of users.docs){
   const record=user.data(),tokens=Array.isArray(record.pushTokens)
    ?[...new Set(record.pushTokens.filter(v=>typeof v==='string'&&v.length>20))]:[];
-  if(record.pushEnabled!==true||tokens.length===0){skipped++;continue;}
+  if(record.pushEnabled!==true||tokens.length===0){unregistered++;continue;}
   const old=record.sentReminders&&typeof record.sentReminders==='object'?record.sentReminders:{};
   const tasks=collect(record.data||{},old,now);
-  if(!tasks.length){skipped++;continue;}
+  if(!tasks.length){nothingDue++;continue;}
   eligible++;
   const count={};
   for(const task of tasks)count[task.type]=(count[task.type]||0)+1;
@@ -111,7 +117,10 @@ async function run(){
     await user.ref.set({sentReminders:updated},{merge:true});
     sent+=result.successCount;
    }
-   if(result.failureCount)failed+=result.failureCount;
+   failed+=result.failureCount;
+   for(const response of result.responses){
+    if(!response.success)countError(response.error);
+   }
    const expired=result.responses.flatMap((response,i)=>{
     const code=String(response.error?.code||'');
     return !response.success&&(
@@ -122,9 +131,9 @@ async function run(){
    if(expired.length){
     await user.ref.update({pushTokens:admin.firestore.FieldValue.arrayRemove(...expired)});
    }
-  }catch(error){failed++;console.error('Fallo al enviar a una cuenta:',user.id,error.message);}
+  }catch(error){failed++;countError(error);}
  }
- console.log(JSON.stringify({date:now.date,minuteOfDay:now.minutes,manual,users:users.size,eligible,sent,skipped,failures:failed}));
+ console.log(JSON.stringify({date:now.date,minuteOfDay:now.minutes,manual,users:users.size,eligible,sent,skipped:unregistered+nothingDue,unregistered,nothingDue,failures:failed,deliveryErrors:Object.fromEntries(deliveryErrors)}));
  if(failed>0)process.exitCode=1;
 }
 run().catch(error=>{console.error('Error de recordatorios:',error.message);process.exitCode=1});

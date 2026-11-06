@@ -1,6 +1,6 @@
 // MI VIDA 360 — Firebase Web SDK modular. Sin credenciales privadas ni servicios de pago.
 // Firebase se usa únicamente después de iniciar sesión; cada cuenta escribe /users/{uid}.
-import { firebaseConfig } from './firebase-config.js';
+import { firebaseConfig, webPushVapidKey } from './firebase-config.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import {
   getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
@@ -8,8 +8,10 @@ import {
   sendPasswordResetEmail, signOut
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {
-  getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp
+  getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, arrayUnion, arrayRemove
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+
+import { getMessaging, getToken, isSupported, onMessage } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging.js';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -18,6 +20,30 @@ const ui = window.MI360App;
 let unsubscribe = null;
 let revision = 0;
 let writing = Promise.resolve();
+let messagingInstance = null;
+let messageListenerSet = false;
+function eligibleForPush(){return !!(webPushVapidKey&&webPushVapidKey.trim()&&navigator.serviceWorker&&window.PushManager&&window.Notification&&window.isSecureContext)}
+async function setupPush(){
+ const user=auth.currentUser;
+ if(!user)throw Error('Inicia sesión primero para asociar los avisos a tu cuenta.');
+ if(!webPushVapidKey.trim())throw Error('Falta configurar la clave pública de notificaciones en Firebase.');
+ if(!eligibleForPush())throw Error('En iPhone abre MI VIDA 360 desde el ícono de la pantalla de inicio, no desde una pestaña de Safari.');
+ if(!(await isSupported()))throw Error('Este dispositivo no admite Firebase Messaging.');
+ const registration=await navigator.serviceWorker.ready;
+ const permission=await Notification.requestPermission();
+ if(permission!=='granted')throw Error('No diste permiso para mostrar notificaciones.');
+ messagingInstance=messagingInstance||getMessaging(app);
+ const token=await getToken(messagingInstance,{vapidKey:webPushVapidKey,serviceWorkerRegistration:registration});
+ if(!token)throw Error('Firebase no entregó un identificador de notificaciones.');
+ await setDoc(doc(db,'users',user.uid),{pushTokens:arrayUnion(token),pushEnabled:true,pushUpdatedAt:serverTimestamp()},{merge:true});
+ if(!messageListenerSet){messageListenerSet=true;onMessage(messagingInstance,payload=>{
+  if(document.visibilityState!=='visible')return;
+  const heading=payload.data?.title||'MI VIDA 360';
+  const detail=payload.data?.body||'Tienes un recordatorio pendiente.';
+  ui?.cloudWarning(heading+' · '+detail);
+ });}
+ return true;
+}
 const uniqueClient = crypto.randomUUID?.() || String(Date.now());
 
 function message(err) {
@@ -56,10 +82,12 @@ const api = {
       if (auth.currentUser?.uid !== id) throw new Error('La sesión cambió antes de guardar.');
       return setDoc(doc(db, 'users', id), {
         data: snapshot, updatedAt: serverTimestamp(), clientId: uniqueClient, schemaVersion: 1
-      });
+      }, {merge:true});
     });
     return writing;
   },
+  setupPush,
+  pushConfigured: () => Boolean(webPushVapidKey&&webPushVapidKey.trim()),
   explain: message
 };
 

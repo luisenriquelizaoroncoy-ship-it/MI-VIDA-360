@@ -1,5 +1,5 @@
 /* MI VIDA 360 - archivos de la aplicación solamente. No recoge datos personales. */
-const CACHE = 'mi-vida-360-iphone-v8-push';
+const CACHE = 'mi-vida-360-iphone-v9-push-ready';
 const SHELL = ['./','./index.html','./firebase-auth-ui.js','./firebase-cloud.js','./firebase-config.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));

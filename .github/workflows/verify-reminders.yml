@@ -1,0 +1,24 @@
+name: Verificar reglas de recordatorios MI VIDA 360
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-reminders.yml'
+      - '.github/workflows/reminders.yml'
+      - 'scripts/reminder-rules.cjs'
+      - 'scripts/send-reminders.cjs'
+      - 'tests/reminders.test.cjs'
+permissions:
+  contents: read
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Probar vencimientos y agenda sin modificar datos personales
+        run: node --test tests/reminders.test.cjs

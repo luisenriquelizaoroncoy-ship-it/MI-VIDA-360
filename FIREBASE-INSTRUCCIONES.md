@@ -1,5 +1,7 @@
 # MI VIDA 360 — Firebase conectado al código
 
+> **Estado actualizado (6 de noviembre de 2026):** los avisos push de pagos, agenda y compras están configurados y la entrega de una prueba al iPhone se confirmó por el propietario. GitHub Actions comprueba recordatorios cada 15 minutos, pero las ejecuciones programadas pueden retrasarse o cancelarse. La prueba automática de reglas es local y no escribe citas de prueba en tu cuenta. Los datos se sincronizan con Firebase y se pueden descargar desde **Ajustes → Guardar copia de seguridad (.json)**; para recuperarlos, usa **Ajustes → Recuperar una copia (.json)**. Descargar un respaldo real requiere hacerlo desde la app iniciando sesión, no desde GitHub. Al cerrar sesión se desasocian las notificaciones push de ese dispositivo y es necesario activarlas de nuevo después de iniciar sesión. **Si la clave privada Firebase se compartió previamente, revócala y actualiza el secreto de GitHub.**
+
 ## Estado
 - Proyecto Firebase: `mi-vida-360-9b9ab` (plan Spark).
 - App Web: configurada en `firebase-config.js` (identificadores públicos).
@@ -29,15 +31,15 @@ Dirección esperada: https://luisenriquelizaoroncoy-ship-it.github.io/MI-VIDA-36
 - No borres la app instalada antes de exportar un respaldo.
 
 ## Limitaciones
-- Las notificaciones del navegador se comprueban al abrir la app; todavía no hay push con la app cerrada.
+- Las notificaciones push pueden llegar con la app cerrada si están activadas y la sesión sigue iniciada. Su recepción puede variar por conectividad, permisos y retrasos del programador.
 - Las escrituras simultáneas en varios dispositivos usan el último guardado confirmado; para uso personal evita editar el mismo registro al mismo tiempo en dos equipos.
 - La cuenta en la nube necesita Internet. Existe una copia local de respaldo en el mismo navegador.
 - El código no contiene credenciales de administrador ni contraseñas del usuario.
 - Spark y GitHub Pages tienen límites de uso y pueden cambiar; revisa su política si aumentan usuarios o tráfico.
 
-## Notificaciones push de pagos con la app cerrada (pendiente de activación)
+## Configuración y mantenimiento de las notificaciones push
 
-El código del iPhone, la suscripción FCM y el envío diario a las **09:07 hora de Lima** ya están preparados. **No funciona todavía** hasta completar ambos pasos siguientes. Los recordatorios comprueban pagos impagos que vencen en 3 días, 1 día o el mismo día. Cada usuario recibe como máximo un mensaje al día por los vencimientos detectados. No aparecen montos sensibles en las notificaciones.
+La configuración actual usa Firebase Cloud Messaging y comprobaciones aproximadamente cada **15 minutos**. Los pasos siguientes explican cómo volver a configurarla si cambias de dispositivo o reemplazas las credenciales. La primera notificación real de prueba ya fue confirmada en iPhone; los avisos posteriores dependen de que haya tareas vencidas y de las condiciones del dispositivo. No aparecen montos sensibles en las notificaciones.
 
 ### A. Clave pública para el teléfono (no es secreta)
 
@@ -51,7 +53,7 @@ El código del iPhone, la suscripción FCM y el envío diario a las **09:07 hora
 2. GitHub → este repositorio → **Settings → Secrets and variables → Actions → New repository secret**.
 3. Nombre exacto: `FIREBASE_SERVICE_ACCOUNT_JSON`; valor: contenido **completo** del JSON privado. Almacénalo solo en **GitHub Secrets**.
 4. Elimina el archivo descargado de la carpeta Descargas cuando confirmes que el secreto está guardado. No lo adjuntes al chat, no lo agregues a ningún commit.
-5. GitHub → **Actions → Recordatorios MI VIDA 360 → Run workflow** para ejecutar prueba manual y revisar errores. También se ejecuta diariamente a las 14:07 UTC, aproximadamente 09:07 en Lima. GitHub puede retrasar las ejecuciones programadas.
+5. GitHub → **Actions → Recordatorios MI VIDA 360 → Run workflow** para ejecutar prueba manual y revisar errores. También se ejecuta aproximadamente cada 15 minutos, aunque GitHub puede retrasar o saltar ejecuciones. GitHub puede retrasar las ejecuciones programadas.
 
 ### C. Activar en iPhone
 
@@ -71,7 +73,7 @@ El código del iPhone, la suscripción FCM y el envío diario a las **09:07 hora
 
 El sistema revisa cada 15 minutos a través de GitHub Actions:
 - **Pagos:** 3 días antes, 1 día antes, el día del vencimiento y, si sigue pendiente, una vez cada mañana después del vencimiento.
-- **Agenda:** para actividades con hora, una notificación cerca de la hora fijada (margen de 30 minutos antes y 90 después para tolerar retrasos); para actividades sin hora, un recordatorio la mañana del día; también aviso previo al día siguiente y recordatorio matutino de actividades atrasadas, hasta 7 días.
+- **Agenda:** para actividades con hora, una notificación a partir de la hora fijada en la siguiente revisión del mismo día; para actividades sin hora, un recordatorio la mañana del día; también aviso el día anterior y recordatorio matutino de actividades atrasadas, hasta 7 días.
 - **Compras:** si tienen una fecha límite, igual que los pagos; si no tienen fecha, resumen semanal el domingo por la mañana.
 - **Completadas:** marca una actividad como «Marcar completado» para dejar de recibir avisos; las compras marcadas como compradas y los pagos marcados como pagados también dejan de notificarse.
 - **Sin duplicados:** cada evento de recordatorio guarda un identificador en la cuenta para impedir reenvíos por ejecuciones repetidas.

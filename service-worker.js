@@ -1,6 +1,6 @@
 /* MI VIDA 360 - archivos de la aplicación solamente. No recoge datos personales. */
-const CACHE = 'mi-vida-360-iphone-v3';
-const SHELL = ['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
+const CACHE = 'mi-vida-360-iphone-v4';
+const SHELL = ['./','./index.html','./auth-vault.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });

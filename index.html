@@ -34,6 +34,14 @@ main{padding:21px 15px 16px}.eyebrow{text-transform:uppercase;letter-spacing:2px
 .alertcard{border:1px solid #f7d6a4;background:#fff9ed;border-radius:16px;padding:14px;margin-bottom:13px}
 .alertcard h2{font-size:14px;margin:0 0 9px;color:#93590e}.alertentry{font-size:12px;padding:8px 0;border-top:1px solid #f5e7ca;display:flex;gap:10px;justify-content:space-between}
 .alertentry strong{color:#9b411e}.syncnote{font-size:11px;color:#718099;line-height:1.5;padding:10px 0}
+
+.authwrap{min-height:calc(100dvh - 180px);display:flex;flex-direction:column;justify-content:center;max-width:430px;margin:auto;padding:30px 6px}
+.authbrand{height:60px;width:60px;border-radius:20px;background:#526cf7;color:#fff;display:grid;place-items:center;font-weight:900;font-size:23px;box-shadow:0 10px 24px #536af344;margin-bottom:22px}
+.authwrap h1{font-size:29px;margin:0 0 9px;letter-spacing:-.7px}.authwrap p{font-size:13px;line-height:1.5;color:#687b98}
+.authform{background:#fff;border:1px solid #e5eaf5;padding:22px 18px;border-radius:19px;display:flex;flex-direction:column;gap:13px;margin:17px 0 12px;box-shadow:0 8px 35px #15264a09}
+.authform label{font-size:12px;font-weight:750;color:#445572;display:flex;flex-direction:column;gap:7px}
+.authform .primary{width:100%;margin-top:5px;font-size:14px;padding:14px}.authswitch{background:none;border:0;color:#4f66e7;font-size:13px;font-weight:750;text-align:center;padding:12px}
+.authhelp{background:#fff9ed;border:1px solid #f5e3bd;border-radius:12px;padding:12px;color:#816323!important;font-size:11px!important}
 </style>
 </head>
 <body>
@@ -45,6 +53,7 @@ main{padding:21px 15px 16px}.eyebrow{text-transform:uppercase;letter-spacing:2px
 <div id="modalRoot"></div>
 <input type="file" id="importFile" accept="application/json,.json" />
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-8h6v8"/></symbol><symbol id="i-wallet" viewBox="0 0 24 24"><path d="M20 7V5a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h15v12H5a3 3 0 0 1-3-3V6"/><path d="M20 12h-6a2 2 0 0 0 0 4h6"/></symbol><symbol id="i-save" viewBox="0 0 24 24"><path d="M20 7c0-2.2-2.3-4-5.3-4-2.1 0-3.8.8-4.7 2.1C9 4 7.4 3 5.6 3 3.6 3 2 4.8 2 7c0 2.1 1.2 3.7 3 4.2L12 20l7-8.8c1.8-.5 3-2.1 3-4.2"/></symbol><symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l1 13H4L5 8z"/><path d="M9 9V6a3 3 0 1 1 6 0v3"/></symbol><symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18"/></symbol><symbol id="i-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20m-16 5h5"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol></svg>
+<script src="./auth-vault.js"></script>
 <script>
 (function(){'use strict';
 const KEY='mivida360_mobile_v1';
@@ -56,10 +65,11 @@ const colors=['#536ff4','#28a58e','#e5a14b','#ed777e','#8d72df','#47a1d3','#a3b7
 const dateToday=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 const monthToday=dateToday().slice(0,7);
 function emptyState(){return {movements:[],goals:[],purchases:[],events:[],payments:[]}}
-let state=load(), tab='inicio',currentMonth=monthToday;
+let state=emptyState(), tab='inicio',currentMonth=monthToday;
+let authEmail=null,authMode=MVAuth.hasUsers()?'login':'register',authBusy=false;
 function load(){try{let v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&typeof v==='object') return normalize(v)}catch(e){}return emptyState()}
 function normalize(obj){const out=emptyState();for(const k of Object.keys(out)){out[k]=Array.isArray(obj[k])?obj[k].filter(x=>x&&typeof x==='object').slice(0,10000):[]}return out}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(e){alert('No se pudo guardar. El navegador puede tener el almacenamiento restringido. Exporta una copia de tus datos.');return false}}
+function persist(){if(!authEmail)return false;MVAuth.save(state).catch(()=>alert('No se pudo guardar de forma segura. Exporta una copia JSON de tus datos.'));return true}
 const id=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.floor(Math.random()*999999)}`;
 const money=n=>'S/ '+(Number(n)||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
 const esc=s=>String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
@@ -76,8 +86,38 @@ function moneyByMonth(month){let arr=state.movements.filter(v=>getMonth(v.date)=
 function spentByCategory(month){const r={};state.movements.filter(x=>x.type==='gasto'&&getMonth(x.date)===month).forEach(x=>r[x.category]=(r[x.category]||0)+Number(x.amount));return Object.entries(r).sort((a,b)=>b[1]-a[1])}
 function goalTotal(g){return Math.max(0,(g.entries||[]).reduce((s,x)=>s+Number(x.amount||0),0))}
 function sumGoals(){return state.goals.reduce((s,x)=>s+goalTotal(x),0)}
+function renderAuth(){
+ document.getElementById('nav').style.display='none';
+ const isNew=authMode==='register';
+ document.getElementById('main').innerHTML='<div class="authwrap"><div class="authbrand">360</div><div class="eyebrow">MI VIDA 360</div><h1>'+(isNew?'Crea tu cuenta':'Bienvenido de nuevo')+'</h1><p>'+(isNew?'Regístrate con tu propio correo y contraseña.':'Ingresa con la cuenta que creaste en este dispositivo.')+'</p>'+
+ '<form class="authform" id="accountForm">'+
+ '<label>Correo electrónico<input name="email" type="email" required autocomplete="username" maxlength="180" placeholder="tunombre@correo.com"></label>'+
+ '<label>Contraseña<input name="password" type="password" required minlength="8" autocomplete="'+(isNew?'new-password':'current-password')+'" placeholder="Mínimo 8 caracteres"></label>'+
+ (isNew?'<label>Confirmar contraseña<input name="repeat" type="password" required minlength="8" autocomplete="new-password" placeholder="Repite tu contraseña"></label>':'')+
+ '<button class="primary" type="submit">'+(isNew?'Crear mi cuenta':'Iniciar sesión')+'</button></form>'+
+ '<button class="authswitch" type="button" data-auth="switch">'+(isNew?'¿Ya tienes cuenta aquí? Iniciar sesión':'¿No tienes cuenta aquí? Crear una')+'</button>'+
+ '<p class="authhelp">🔒 Cuenta local cifrada. Los datos se guardan únicamente en este dispositivo: todavía no se sincronizan entre equipos. Guarda una copia de seguridad. Si olvidas la contraseña no será posible recuperar los datos sin esa copia.</p></div>';
+}
+async function submitAuth(form){
+ if(authBusy)return;const data=Object.fromEntries(new FormData(form).entries());
+ if(authMode==='register'&&data.password!==data.repeat){alert('Las contraseñas no coinciden.');return}
+ authBusy=true;const button=form.querySelector('button[type=submit]');button.disabled=true;button.textContent='Verificando…';
+ try{
+  let result;
+  if(authMode==='register'){
+   const old=load();const hasOld=Object.values(old).some(arr=>arr.length);
+   const migrate=hasOld&&confirm('Encontré registros antiguos de MI VIDA 360 en este dispositivo. ¿Quieres incorporarlos a tu nueva cuenta?');
+   result=await MVAuth.register(data.email,data.password,migrate?old:emptyState());
+  }else result=await MVAuth.login(data.email,data.password);
+  authEmail=MVAuth.current();state=normalize(result);render();
+ }catch(e){alert(e.message);button.disabled=false;button.textContent=authMode==='register'?'Crear mi cuenta':'Iniciar sesión'}
+ finally{authBusy=false}
+}
+async function logoutAccount(){
+ try{await MVAuth.logout();authEmail=null;state=emptyState();authMode='login';close();render()}catch(e){alert('No se pudo cerrar la sesión de forma segura. Vuelve a intentarlo.')}
+}
 function nav(){document.getElementById('nav').innerHTML=Object.keys(labels).map(k=>`<button type="button" class="${k===tab?'active':''}" data-tab="${k}" aria-current="${k===tab?'page':'false'}">${svg(icons[k])}<span>${labels[k]}</span></button>`).join('')}
-function render(){nav();document.getElementById('main').innerHTML=({inicio:renderHome,gastos:renderExpenses,ahorros:renderSavings,compras:renderPurchases,agenda:renderAgenda,pagos:renderPayments}[tab])();}
+function render(){if(!authEmail){renderAuth();return}document.getElementById('nav').style.display='grid';nav();document.getElementById('main').innerHTML=({inicio:renderHome,gastos:renderExpenses,ahorros:renderSavings,compras:renderPurchases,agenda:renderAgenda,pagos:renderPayments}[tab])();}
 function navigate(t){tab=t;render();window.scrollTo(0,0)}
 function monthsChart(){let days=[];let d=new Date(Number(currentMonth.slice(0,4)),Number(currentMonth.slice(5))-1,1);for(let i=5;i>=0;i--){let x=new Date(d.getFullYear(),d.getMonth()-i,1);days.push(`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`)}let points=days.map(m=>({m,...moneyByMonth(m)}));let max=Math.max(1,...points.flatMap(x=>[x.income,x.expense]));return `<div class="chart">${points.map(x=>`<div class="chartcol"><div class="bars"><div style="background:#526df8;height:${Math.max(3,Math.round(x.income/max*85))}px" title="Ingresos ${money(x.income)}"></div><div style="background:#ed939a;height:${Math.max(3,Math.round(x.expense/max*85))}px" title="Gastos ${money(x.expense)}"></div></div><span class="chartlbl">${upper(new Date(x.m+'-15T12:00:00').toLocaleDateString('es-PE',{month:'short'})).replace('.','')}</span></div>`).join('')}</div><div class="legend"><span><i class="dot" style="background:#526df8"></i>Ingresos</span><span><i class="dot" style="background:#ed939a"></i>Gastos</span></div>`}
 function movementRow(v,editable=false){let inc=v.type==='ingreso';return `<div class="item"><div class="itemico" style="background:${inc?'#eaf8f2':'#fff2f3'};color:${inc?'#20a17f':'#e77c83'}">${inc?'↗':'↘'}</div><div class="itemmain"><div class="itemtitle">${esc(v.title)}</div><div class="itemsub">${esc(v.category)} · ${pretty(v.date)}</div></div><div class="itemright"><div class="amount ${inc?'pos':'neg'}">${inc?'+':'−'}${money(v.amount)}</div>${editable?`<div class="actions"><button data-action="edit" data-kind="movement" data-id="${esc(v.id)}">Editar</button><button data-action="delete" data-kind="movement" data-id="${esc(v.id)}">Borrar</button></div>`:''}</div></div>`}
@@ -130,15 +170,15 @@ if(k==='event'){if(!/^\d{4}-\d\d-\d\d$/.test(obj.date))return alert('Revisa la f
 if(k==='payment'){let n=validateMoney(obj.amount);if(n===null||!/^\d{4}-\d\d-\d\d$/.test(obj.due))return alert('Revisa el monto y la fecha.');Object.assign(record,{amount:n,due:obj.due,paid:old?.paid||false,recurrence:obj.recurrence==='Mensual'?'Mensual':'No repetir'});}
 if(old)Object.assign(old,record);else state[collection].push(record);persist();if(k==='payment')generateRecurring();close();render()}
 function backup(){let blob=new Blob([JSON.stringify({app:'MI VIDA 360 Móvil',version:1,exportedAt:new Date().toISOString(),data:state},null,2)],{type:'application/json'});let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;a.download=`MI_VIDA_360_copia_${dateToday()}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
-function openSettings(){modal('Mi privacidad y datos',`<div class="callout">🔒 Tus datos se guardan en este dispositivo. Por ahora no hay sincronización con Google; guarda una copia JSON para protegerlos. Las alertas aparecen al abrir la aplicación.</div><div class="settingslist margintop"><button class="outline" data-action="notify">🔔 Activar avisos al abrir la app</button><div class="syncnote">Las notificaciones no llegan con la aplicación cerrada. En iPhone, añade la web a la pantalla de inicio para poder autorizar avisos cuando sea compatible.</div><button class="outline" data-action="export">↓ Guardar copia de seguridad (.json)</button><button class="outline" data-action="import">↑ Recuperar una copia (.json)</button><button class="outline" data-action="demo">◇ Cargar datos de ejemplo</button><button class="outline danger" data-action="clear">Borrar todos mis datos</button></div><p class="safezone">Una copia JSON contiene tus datos personales. Guárdala en un lugar privado. Desinstalar la app o borrar datos de Safari puede eliminar la información local.</p>`)}
+function openSettings(){if(!authEmail)return;modal('Mi privacidad y datos',`<div class="callout">🔒 Sesión: <b>${esc(authEmail)}</b>. Tu cuenta está cifrada en este dispositivo, pero todavía no existe sincronización entre iPhone y laptop. Las alertas aparecen al abrir la app.</div><div class="settingslist margintop"><button class="outline" data-action="logout">Cerrar sesión</button><button class="outline" data-action="notify">🔔 Activar avisos al abrir la app</button><div class="syncnote">Las notificaciones no llegan con la aplicación cerrada. En iPhone, añade la web a la pantalla de inicio para poder autorizar avisos cuando sea compatible.</div><button class="outline" data-action="export">↓ Guardar copia de seguridad (.json)</button><button class="outline" data-action="import">↑ Recuperar una copia (.json)</button><button class="outline" data-action="demo">◇ Cargar datos de ejemplo</button><button class="outline danger" data-action="clear">Borrar todos mis datos</button></div><p class="safezone">Una copia JSON contiene tus datos personales. Guárdala en un lugar privado. Desinstalar la app o borrar datos de Safari puede eliminar la información local.</p>`)}
 function addDemo(){let count=Object.values(state).reduce((n,v)=>n+v.length,0);if(count&&!confirm('Esto REEMPLAZARÁ tus datos actuales con datos de ejemplo. ¿Continuar?'))return;let now=dateToday();state={movements:[{id:id(),type:'ingreso',title:'Sueldo de ejemplo',category:'Sueldo',date:now,amount:2000},{id:id(),type:'gasto',title:'Almuerzo',category:'Alimentación',date:now,amount:18},{id:id(),type:'gasto',title:'Transporte',category:'Transporte',date:now,amount:6}],goals:[{id:id(),title:'Fondo de emergencia',target:1500,entries:[{id:id(),amount:280,date:now}]}],purchases:[{id:id(),title:'Audífonos',price:120,priority:'Media',bought:false}],events:[{id:id(),title:'Revisar pendientes',date:now,time:'19:00',category:'Personal'}],payments:[{id:id(),title:'Recibo de internet',amount:90,due:now,paid:false}]};persist();close();render()}
-function handleClick(e){let b=e.target.closest('button');if(!b)return;if(b.dataset.tab){navigate(b.dataset.tab);return}let act=b.dataset.action,k=b.dataset.kind,v=b.dataset.id;if(!act)return;
+function handleClick(e){let b=e.target.closest('button');if(!b)return;if(b.dataset.auth==='switch'){authMode=authMode==='login'?'register':'login';renderAuth();return}if(b.dataset.action==='logout'){logoutAccount();return}if(!authEmail)return;if(b.dataset.tab){navigate(b.dataset.tab);return}let act=b.dataset.action,k=b.dataset.kind,v=b.dataset.id;if(!act)return;
 if(act==='close')close();if(act==='new')openForm(k);if(act==='contribute')openContribute(v);
 if(act==='movetype'){let form=document.getElementById('editForm');form.elements.type.value=b.dataset.value;document.querySelectorAll('[data-action=movetype]').forEach(x=>x.classList.toggle('on',x.dataset.value===b.dataset.value));document.getElementById('catSelect').innerHTML=select('category','Categoría',b.dataset.value==='gasto'?catExpense:catIncome,b.dataset.value==='gasto'?'Alimentación':'Sueldo')}
 if(act==='edit'||act==='delete'||act==='toggle'){let key={movement:'movements',goal:'goals',purchase:'purchases',event:'events',payment:'payments'}[k],item=state[key]?.find(x=>x.id===v);if(!item)return;if(act==='edit')openForm(k,item);if(act==='delete'&&confirm('¿Eliminar “'+item.title+'”?')){state[key]=state[key].filter(x=>x.id!==v);persist();render()}if(act==='toggle'){if(k==='purchase')item.bought=!item.bought;if(k==='payment')item.paid=!item.paid;persist();render()}}
 if(act==='notify')enableNotifications();if(act==='export')backup();if(act==='import')document.getElementById('importFile').click();if(act==='demo')addDemo();if(act==='clear'&&confirm('¿Borrar todos los registros? Esta acción no se puede deshacer sin una copia de seguridad.')){state=emptyState();persist();close();render()}}
-document.addEventListener('click',handleClick);document.getElementById('settingsBtn').addEventListener('click',openSettings);document.getElementById('modalRoot').addEventListener('click',e=>{if(e.target.id==='back')close()});document.addEventListener('submit',handleSubmit);
-document.getElementById('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>5_000_000)throw Error('El archivo es demasiado grande.');let v=JSON.parse(await file.text());let data=v.data||v;if(!data||typeof data!=='object'||!Array.isArray(data.movements)||!Array.isArray(data.goals))throw Error('No parece una copia válida de MI VIDA 360.');if(!confirm('Esta copia reemplazará los datos actuales. ¿Continuar?'))return;state=normalize(data);persist();close();render();alert('Copia recuperada.')}catch(err){alert('No se pudo importar: '+err.message)}finally{e.target.value=''}});
+document.addEventListener('click',handleClick);document.getElementById('settingsBtn').addEventListener('click',openSettings);document.getElementById('modalRoot').addEventListener('click',e=>{if(e.target.id==='back')close()});document.addEventListener('submit',e=>{if(e.target.id==='accountForm'){e.preventDefault();submitAuth(e.target)}else if(authEmail)handleSubmit(e)});
+document.getElementById('importFile').addEventListener('change',async e=>{if(!authEmail)return;const file=e.target.files[0];if(!file)return;try{if(file.size>5_000_000)throw Error('El archivo es demasiado grande.');let v=JSON.parse(await file.text());let data=v.data||v;if(!data||typeof data!=='object'||!Array.isArray(data.movements)||!Array.isArray(data.goals))throw Error('No parece una copia válida de MI VIDA 360.');if(!confirm('Esta copia reemplazará los datos actuales. ¿Continuar?'))return;state=normalize(data);persist();close();render();alert('Copia recuperada.')}catch(err){alert('No se pudo importar: '+err.message)}finally{e.target.value=''}});
 document.addEventListener('change',e=>{if(e.target.id==='month'&&/^\d{4}-\d\d$/.test(e.target.value)){currentMonth=e.target.value;render()}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
 generateRecurring();render();scanNotifications();

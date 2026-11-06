@@ -109,7 +109,7 @@ async function submitAuth(form){
    const migrate=hasOld&&confirm('Encontré registros antiguos de MI VIDA 360 en este dispositivo. ¿Quieres incorporarlos a tu nueva cuenta?');
    result=await MVAuth.register(data.email,data.password,migrate?old:emptyState());
   }else result=await MVAuth.login(data.email,data.password);
-  authEmail=MVAuth.current();state=normalize(result);render();
+  authEmail=MVAuth.current();state=normalize(result);generateRecurring();render();scanNotifications();
  }catch(e){alert(e.message);button.disabled=false;button.textContent=authMode==='register'?'Crear mi cuenta':'Iniciar sesión'}
  finally{authBusy=false}
 }
@@ -181,7 +181,7 @@ document.addEventListener('click',handleClick);document.getElementById('settings
 document.getElementById('importFile').addEventListener('change',async e=>{if(!authEmail)return;const file=e.target.files[0];if(!file)return;try{if(file.size>5_000_000)throw Error('El archivo es demasiado grande.');let v=JSON.parse(await file.text());let data=v.data||v;if(!data||typeof data!=='object'||!Array.isArray(data.movements)||!Array.isArray(data.goals))throw Error('No parece una copia válida de MI VIDA 360.');if(!confirm('Esta copia reemplazará los datos actuales. ¿Continuar?'))return;state=normalize(data);persist();close();render();alert('Copia recuperada.')}catch(err){alert('No se pudo importar: '+err.message)}finally{e.target.value=''}});
 document.addEventListener('change',e=>{if(e.target.id==='month'&&/^\d{4}-\d\d$/.test(e.target.value)){currentMonth=e.target.value;render()}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
-generateRecurring();render();scanNotifications();
+render();
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}))}
 })();
 </script>

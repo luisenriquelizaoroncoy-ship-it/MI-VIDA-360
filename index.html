@@ -34,11 +34,31 @@ main{padding:21px 15px 16px}.eyebrow{text-transform:uppercase;letter-spacing:2px
 .alertcard{border:1px solid #f7d6a4;background:#fff9ed;border-radius:16px;padding:14px;margin-bottom:13px}
 .alertcard h2{font-size:14px;margin:0 0 9px;color:#93590e}.alertentry{font-size:12px;padding:8px 0;border-top:1px solid #f5e7ca;display:flex;gap:10px;justify-content:space-between}
 .alertentry strong{color:#9b411e}.syncnote{font-size:11px;color:#718099;line-height:1.5;padding:10px 0}
+
+/* Acceso seguro y sencillo; el panel original no se muestra antes de autenticar. */
+body.auth-locked .app{display:none}
+.auth-screen{display:none}
+body.auth-locked .auth-screen{display:flex}
+.auth-screen{padding:calc(18px + env(safe-area-inset-top)) 17px;min-height:100dvh;align-items:center;justify-content:center;background:#f2f5fb}
+.auth-panel{width:min(100%,430px);padding:18px 0 35px}
+.auth-symbol{width:62px;height:62px;display:grid;place-items:center;border-radius:19px;background:#536afa;color:white;font-size:22px;font-weight:850;margin-bottom:22px;box-shadow:0 8px 23px #526bf53b}
+.auth-eyebrow{font-size:11px;color:#526bf5;font-weight:850;letter-spacing:2px;margin-bottom:8px}
+.auth-panel h1{font-size:29px;letter-spacing:-1px;margin:0 0 7px;color:#14243f}
+.auth-desc{font-size:13px;line-height:1.5;color:#8494ac;margin:0 0 19px}
+.auth-form{background:white;border:1px solid #e6ebf5;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:13px;margin-bottom:11px}
+.auth-form label{display:flex;flex-direction:column;gap:7px;color:#435775;font-size:12px;font-weight:700}
+.auth-form input{padding:12px;border-radius:11px;font-size:15px}
+.auth-primary{background:#516bf6;color:white;border:0;border-radius:11px;font-weight:750;padding:13px;font-size:14px;margin-top:4px}
+.auth-google,.auth-offline{width:100%;background:white;border:1px solid #dce4f1;border-radius:12px;padding:12px 13px;font-size:13px;font-weight:740;color:#2a3f5b;margin-bottom:7px}
+.auth-link{display:block;border:0;background:none;color:#516bf0;font-size:13px;font-weight:700;padding:12px;margin:auto}
+.auth-offline{margin-top:5px}
+.auth-footnote{font-size:11px;color:#7f90a8;line-height:1.5;background:#e9effd;border-radius:13px;padding:12px}
 </style>
 </head>
-<body>
+<body class="auth-locked">
+<div id="authRoot"></div>
 <div class="app">
-<header class="top"><div class="brand"><div class="mark">360</div><div><div class="brandtitle">MI VIDA 360</div><div class="brandsub">Acceso directo · v6</div></div></div><button class="topbtn" id="settingsBtn" title="Ajustes y respaldo" aria-label="Ajustes y respaldo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a2 2 0 0 1 2 2v1a6 6 0 0 1 2 1l1-.5a2 2 0 0 1 2.7.8l.6 1a2 2 0 0 1-.7 2.7l-1 .6a6 6 0 0 1 0 2l1 .6a2 2 0 0 1 .7 2.7l-.6 1a2 2 0 0 1-2.7.8l-1-.5a6 6 0 0 1-2 1v1a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-1a6 6 0 0 1-2-1l-1 .5a2 2 0 0 1-2.7-.8l-.6-1a2 2 0 0 1 .7-2.7l1-.6a6 6 0 0 1 0-2l-1-.6a2 2 0 0 1-.7-2.7l.6-1a2 2 0 0 1 2.7-.8l1 .5a6 6 0 0 1 2-1V5a2 2 0 0 1 2-2z"/><circle cx="12" cy="12" r="3"/></svg></button></header>
+<header class="top"><div class="brand"><div class="mark">360</div><div><div class="brandtitle">MI VIDA 360</div><div class="brandsub">Tu cuenta · Firebase</div></div></div><button class="topbtn" id="settingsBtn" title="Ajustes y respaldo" aria-label="Ajustes y respaldo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a2 2 0 0 1 2 2v1a6 6 0 0 1 2 1l1-.5a2 2 0 0 1 2.7.8l.6 1a2 2 0 0 1-.7 2.7l-1 .6a6 6 0 0 1 0 2l1 .6a2 2 0 0 1 .7 2.7l-.6 1a2 2 0 0 1-2.7.8l-1-.5a6 6 0 0 1-2 1v1a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-1a6 6 0 0 1-2-1l-1 .5a2 2 0 0 1-2.7-.8l-.6-1a2 2 0 0 1 .7-2.7l1-.6a6 6 0 0 1 0-2l-1-.6a2 2 0 0 1-.7-2.7l.6-1a2 2 0 0 1 2.7-.8l1 .5a6 6 0 0 1 2-1V5a2 2 0 0 1 2-2z"/><circle cx="12" cy="12" r="3"/></svg></button></header>
 <main id="main"></main>
 <nav class="nav" id="nav" aria-label="Secciones"></nav>
 </div>
@@ -57,9 +77,23 @@ const dateToday=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.ge
 const monthToday=dateToday().slice(0,7);
 function emptyState(){return {movements:[],goals:[],purchases:[],events:[],payments:[]}}
 let state=load(), tab='inicio',currentMonth=monthToday;
+let accessMode='locked', accountUser=null, accountApi=null, cloudWrites=0;
+const accountCacheKey=uid=>'mivida360_cloud_cache_'+uid;
+function hasItems(data){return !!data&&Object.values(data).some(v=>Array.isArray(v)&&v.length>0)}
 function load(){try{let v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&typeof v==='object') return normalize(v)}catch(e){}return emptyState()}
 function normalize(obj){const out=emptyState();for(const k of Object.keys(out)){out[k]=Array.isArray(obj[k])?obj[k].filter(x=>x&&typeof x==='object').slice(0,10000):[]}return out}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(e){alert('No se pudo guardar. El navegador puede tener el almacenamiento restringido. Exporta una copia de tus datos.');return false}}
+function persist(){
+ if(accessMode==='cloud'&&accountUser&&accountApi){
+  try{localStorage.setItem(accountCacheKey(accountUser.uid),JSON.stringify(state))}catch(e){}
+  const snapshot=JSON.parse(JSON.stringify(state));cloudWrites++;
+  accountApi.save(snapshot).catch(e=>{console.warn('MI VIDA 360: no se sincronizó',e);alert('No se pudo sincronizar con Firebase. Conserva una copia JSON de tus datos cuando puedas.');}).finally(()=>cloudWrites--);
+  return true;
+ }
+ if(accessMode==='local'){
+  try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(e){alert('No se pudo guardar. Descarga una copia de tus datos.');return false}
+ }
+ return false;
+}
 const id=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.floor(Math.random()*999999)}`;
 const money=n=>'S/ '+(Number(n)||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
 const esc=s=>String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
@@ -130,9 +164,9 @@ if(k==='event'){if(!/^\d{4}-\d\d-\d\d$/.test(obj.date))return alert('Revisa la f
 if(k==='payment'){let n=validateMoney(obj.amount);if(n===null||!/^\d{4}-\d\d-\d\d$/.test(obj.due))return alert('Revisa el monto y la fecha.');Object.assign(record,{amount:n,due:obj.due,paid:old?.paid||false,recurrence:obj.recurrence==='Mensual'?'Mensual':'No repetir'});}
 if(old)Object.assign(old,record);else state[collection].push(record);persist();if(k==='payment')generateRecurring();close();render()}
 function backup(){let blob=new Blob([JSON.stringify({app:'MI VIDA 360 Móvil',version:1,exportedAt:new Date().toISOString(),data:state},null,2)],{type:'application/json'});let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;a.download=`MI_VIDA_360_copia_${dateToday()}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
-function openSettings(){modal('Mi privacidad y datos',`<div class="callout">🔒 Tus datos se guardan en este dispositivo. Por ahora no hay sincronización con Google; guarda una copia JSON para protegerlos. Las alertas aparecen al abrir la aplicación.</div><div class="settingslist margintop"><button class="outline" data-action="notify">🔔 Activar avisos al abrir la app</button><div class="syncnote">Las notificaciones no llegan con la aplicación cerrada. En iPhone, añade la web a la pantalla de inicio para poder autorizar avisos cuando sea compatible.</div><button class="outline" data-action="export">↓ Guardar copia de seguridad (.json)</button><button class="outline" data-action="import">↑ Recuperar una copia (.json)</button><button class="outline" data-action="demo">◇ Cargar datos de ejemplo</button><button class="outline danger" data-action="clear">Borrar todos mis datos</button></div><p class="safezone">Una copia JSON contiene tus datos personales. Guárdala en un lugar privado. Desinstalar la app o borrar datos de Safari puede eliminar la información local.</p>`)}
+function openSettings(){if(accessMode==='locked')return;modal('Mi privacidad y datos',`<div class="callout">🔒 ${accessMode==='cloud'?'Cuenta: '+esc(accountUser?.email||'Firebase')+'. Tus datos se guardan en Firestore.':'Modo sin cuenta: tus registros se guardan solo en este dispositivo.'} Exporta respaldos JSON periódicamente.</div><div class="settingslist margintop"><button class="outline" data-action="account">${accessMode==='cloud'?'Cerrar sesión':'Ir a iniciar sesión'}</button><button class="outline" data-action="notify">🔔 Activar avisos al abrir la app</button><div class="syncnote">Las notificaciones no llegan con la aplicación cerrada. En iPhone, añade la web a la pantalla de inicio para poder autorizar avisos cuando sea compatible.</div><button class="outline" data-action="export">↓ Guardar copia de seguridad (.json)</button><button class="outline" data-action="import">↑ Recuperar una copia (.json)</button><button class="outline" data-action="demo">◇ Cargar datos de ejemplo</button><button class="outline danger" data-action="clear">Borrar todos mis datos</button></div><p class="safezone">Una copia JSON contiene tus datos personales. Guárdala en un lugar privado. Desinstalar la app o borrar datos de Safari puede eliminar la información local.</p>`)}
 function addDemo(){let count=Object.values(state).reduce((n,v)=>n+v.length,0);if(count&&!confirm('Esto REEMPLAZARÁ tus datos actuales con datos de ejemplo. ¿Continuar?'))return;let now=dateToday();state={movements:[{id:id(),type:'ingreso',title:'Sueldo de ejemplo',category:'Sueldo',date:now,amount:2000},{id:id(),type:'gasto',title:'Almuerzo',category:'Alimentación',date:now,amount:18},{id:id(),type:'gasto',title:'Transporte',category:'Transporte',date:now,amount:6}],goals:[{id:id(),title:'Fondo de emergencia',target:1500,entries:[{id:id(),amount:280,date:now}]}],purchases:[{id:id(),title:'Audífonos',price:120,priority:'Media',bought:false}],events:[{id:id(),title:'Revisar pendientes',date:now,time:'19:00',category:'Personal'}],payments:[{id:id(),title:'Recibo de internet',amount:90,due:now,paid:false}]};persist();close();render()}
-function handleClick(e){let b=e.target.closest('button');if(!b)return;if(b.dataset.tab){navigate(b.dataset.tab);return}let act=b.dataset.action,k=b.dataset.kind,v=b.dataset.id;if(!act)return;
+function handleClick(e){let b=e.target.closest('button');if(!b)return;if(b.dataset.action==='account'){switchAccount();return}if(accessMode==='locked')return;if(b.dataset.tab){navigate(b.dataset.tab);return}let act=b.dataset.action,k=b.dataset.kind,v=b.dataset.id;if(!act)return;
 if(act==='close')close();if(act==='new')openForm(k);if(act==='contribute')openContribute(v);
 if(act==='movetype'){let form=document.getElementById('editForm');form.elements.type.value=b.dataset.value;document.querySelectorAll('[data-action=movetype]').forEach(x=>x.classList.toggle('on',x.dataset.value===b.dataset.value));document.getElementById('catSelect').innerHTML=select('category','Categoría',b.dataset.value==='gasto'?catExpense:catIncome,b.dataset.value==='gasto'?'Alimentación':'Sueldo')}
 if(act==='edit'||act==='delete'||act==='toggle'){let key={movement:'movements',goal:'goals',purchase:'purchases',event:'events',payment:'payments'}[k],item=state[key]?.find(x=>x.id===v);if(!item)return;if(act==='edit')openForm(k,item);if(act==='delete'&&confirm('¿Eliminar “'+item.title+'”?')){state[key]=state[key].filter(x=>x.id!==v);persist();render()}if(act==='toggle'){if(k==='purchase')item.bought=!item.bought;if(k==='payment')item.paid=!item.paid;persist();render()}}
@@ -141,9 +175,60 @@ document.addEventListener('click',handleClick);document.getElementById('settings
 document.getElementById('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>5_000_000)throw Error('El archivo es demasiado grande.');let v=JSON.parse(await file.text());let data=v.data||v;if(!data||typeof data!=='object'||!Array.isArray(data.movements)||!Array.isArray(data.goals))throw Error('No parece una copia válida de MI VIDA 360.');if(!confirm('Esta copia reemplazará los datos actuales. ¿Continuar?'))return;state=normalize(data);persist();close();render();alert('Copia recuperada.')}catch(err){alert('No se pudo importar: '+err.message)}finally{e.target.value=''}});
 document.addEventListener('change',e=>{if(e.target.id==='month'&&/^\d{4}-\d\d$/.test(e.target.value)){currentMonth=e.target.value;render()}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
-generateRecurring();render();scanNotifications();
+window.MI360App={
+ cloudReady(api){accountApi=api;window.MI360AuthUI?.updateReady()},
+ cloudFailed(msg){window.MI360AuthUI?.failed(msg)},
+ cloudWarning(msg){console.warn('MI VIDA 360 Firebase:',msg)},
+ useLocal(){accessMode='local';accountUser=null;state=load();generateRecurring();window.MI360AuthUI?.hide();render();scanNotifications()},
+ async cloudSignedIn(user,remote,options){
+  if(accessMode==='local')return null;
+  accountUser=user;
+  if(options.exists){
+   if(!remote||!Array.isArray(remote.movements)||!Array.isArray(remote.goals)){
+    alert('Los registros de Firebase no tienen el formato esperado. No se sobrescribirán.');
+    return null;
+   }
+   state=normalize(remote);
+  }else if(options.offline){
+   let cached=null;
+   try{cached=JSON.parse(localStorage.getItem(accountCacheKey(user.uid))||'null')}catch(e){}
+   if(!cached||!Array.isArray(cached.movements)){
+    alert('No pude descargar los registros de tu cuenta. Comprueba tu conexión a Internet.');
+    return null;
+   }
+   state=normalize(cached);
+  }else{
+   const original=load();
+   state=hasItems(original)&&confirm('Encontramos tus registros antiguos de MI VIDA 360 en este navegador. ¿Quieres copiarlos a tu cuenta de Firebase?')?normalize(original):emptyState();
+  }
+  accessMode='cloud';
+  try{localStorage.setItem(accountCacheKey(user.uid),JSON.stringify(state))}catch(e){}
+  generateRecurring();window.MI360AuthUI?.hide();render();scanNotifications();
+  return !options.exists&&!options.offline?JSON.parse(JSON.stringify(state)):null;
+ },
+ cloudSignedOut(){if(accessMode!=='local'){accessMode='locked';accountUser=null;state=emptyState();window.MI360AuthUI?.show()}},
+ cloudRemote(remote){if(accessMode!=='cloud'||cloudWrites>0)return;
+  if(!remote||!Array.isArray(remote.movements)||!Array.isArray(remote.goals))return;
+  let incoming=normalize(remote);
+  if(JSON.stringify(incoming)!==JSON.stringify(state)){
+   state=incoming;try{localStorage.setItem(accountCacheKey(accountUser.uid),JSON.stringify(state))}catch(e){}render();
+  }
+ }
+};
+async function switchAccount(){
+ if(accessMode==='local'){accessMode='locked';state=emptyState();close();window.MI360AuthUI?.show();return}
+ if(accessMode==='cloud'&&accountApi){close();try{await accountApi.logout()}catch(err){alert(accountApi.explain(err))}}
+}
+render();
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}))}
 })();
+</script>
+<script src="./firebase-auth-ui.js"></script>
+<script type="module">
+import('./firebase-cloud.js').catch(error=>{
+ console.error('MI VIDA 360 Firebase no pudo cargar:',error);
+ window.MI360App?.cloudFailed(error?.message||'Error de conexión');
+});
 </script>
 </body>
 </html>

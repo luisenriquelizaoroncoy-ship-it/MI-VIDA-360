@@ -66,3 +66,22 @@ El código del iPhone, la suscripción FCM y el envío diario a las **09:07 hora
 - Las push solo funcionarán al completar A y B. No se pueden activar desde GitHub con solo el código público.
 - Firebase Cloud Messaging no tiene costo; GitHub Actions tiene límites, y los workflows programados de repositorios públicos se desactivan tras unos 60 días sin actividad en el repositorio. No es garantía de funcionamiento para siempre.
 - Nunca establezcas `allow read, write: if true` en Firestore.
+
+## Recordatorios unificados — actualización
+
+El sistema revisa cada 15 minutos a través de GitHub Actions:
+- **Pagos:** 3 días antes, 1 día antes, el día del vencimiento y, si sigue pendiente, una vez cada mañana después del vencimiento.
+- **Agenda:** para actividades con hora, una notificación cerca de la hora fijada (margen de 30 minutos antes y 90 después para tolerar retrasos); para actividades sin hora, un recordatorio la mañana del día; también aviso previo al día siguiente y recordatorio matutino de actividades atrasadas, hasta 7 días.
+- **Compras:** si tienen una fecha límite, igual que los pagos; si no tienen fecha, resumen semanal el domingo por la mañana.
+- **Completadas:** marca una actividad como «Marcar completado» para dejar de recibir avisos; las compras marcadas como compradas y los pagos marcados como pagados también dejan de notificarse.
+- **Sin duplicados:** cada evento de recordatorio guarda un identificador en la cuenta para impedir reenvíos por ejecuciones repetidas.
+
+GitHub Actions puede retrasarse o no ejecutarse a la hora prevista: **no equivale a una alarma exacta de reloj**, especialmente para una cita crítica. Para citas críticas, conviene mantener además una alarma nativa de iPhone.
+
+### Prueba
+1. En el iPhone, entra en MI VIDA 360 desde el icono de pantalla de inicio y activa los avisos push en Ajustes.
+2. Registra una actividad pendiente en Agenda para dentro de aproximadamente 15 a 30 minutos. Debe tener fecha y hora, y no estar completada.
+3. GitHub → Actions → «Recordatorios MI VIDA 360» → Run workflow; o espera a una ejecución programada.
+4. En el log, revisa `eligible`, `sent`, `skipped` y `failures`. Solo `sent > 0` confirma que Firebase aceptó el envío. La recepción final debe comprobarse en el iPhone.
+
+**Seguridad:** si alguna clave privada de servicio fue compartida en una conversación o archivo accesible, revócala y sustituye el secreto `FIREBASE_SERVICE_ACCOUNT_JSON` de GitHub por una clave nueva, sin enviarla por chat.

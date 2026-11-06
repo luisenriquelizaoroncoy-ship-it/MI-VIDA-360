@@ -1,0 +1,36 @@
+MI VIDA 360 — APP PARA IPHONE
+=================================
+LISTA PARA INSTALAR DESDE SAFARI (PWA)
+
+1. DESDE TU PC O LAPTOP
+   - Descarga el ZIP de MI VIDA 360 que te entregó ChatGPT.
+   - Entra a https://app.netlify.com/drop
+   - Arrastra el archivo ZIP. Si la plataforma no lo acepta, descomprímelo y arrastra la carpeta MI_VIDA_360_INSTALAR_IPHONE.
+   - La plataforma genera una dirección HTTPS (como https://nombre.netlify.app).
+   - Guarda esa dirección o envíatela a tu iPhone por WhatsApp.
+
+2. DESDE TU IPHONE
+   - Abre la dirección HTTPS en Safari (no desde el visor de WhatsApp).
+   - Toca Compartir (cuadrado con flecha). Si no aparece, abre el menú de la página de Safari y luego Compartir.
+   - Toca 'Añadir a pantalla de inicio' (o 'Agregar a Inicio').
+   - Activa 'Abrir como app web', si aparece, y toca Añadir.
+   - Abre MI VIDA 360 desde su nuevo ícono, como cualquier aplicación.
+   - Abre una vez con internet para cargar los archivos sin conexión.
+
+SECCIONES
+Inicio, Gastos e ingresos, Ahorros, Compras, Agenda y Pagos.
+
+PRIVACIDAD
+- Netlify publica los ARCHIVOS DE LA APP, no tus gastos ni tus ahorros.
+- Los datos se guardan en el almacenamiento LOCAL del dispositivo con el que uses la app.
+- No se sincronizan entre iPhone y PC ni con el Excel.
+- El enlace web de la app puede ser público. No compartas tu archivo JSON de respaldo.
+- La app no tiene contraseña propia; el bloqueo del iPhone es importante.
+- Borrar la app o sus datos puede borrar tus registros. En la rueda de Ajustes, guarda
+  copias JSON de seguridad periódicamente en un lugar privado ('En mi iPhone').
+- El almacenamiento sin conexión puede ser eliminado por iOS si falta espacio; conserva copias.
+
+IMPORTANTE
+Este ZIP no se instala por sí mismo. Antes de abrirlo como app, DEBES publicar los
+archivos estáticos en HTTPS y después usar 'Añadir a pantalla de inicio' en Safari.
+No necesitas App Store, Mac ni Xcode. Netlify ofrece un plan gratuito sujeto a condiciones.

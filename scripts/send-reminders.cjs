@@ -81,6 +81,14 @@ function registeredTokens(record){
  if(record.pushEnabled!==true||!Array.isArray(record.pushTokens))return [];
  return [...new Set(record.pushTokens.filter(token=>typeof token==='string'&&token.length>20))];
 }
+async function removeExpired(ref,tokens,responses){
+ const expired=tokens.filter((token,i)=>{
+  const code=responses[i].error?.code;
+  return code==='messaging/registration-token-not-registered'||code==='messaging/invalid-registration-token';
+ });
+ if(expired.length)await ref.update({pushTokens:admin.firestore.FieldValue.arrayRemove(...expired)});
+ return expired.length;
+}
 async function sendTest(){
  // Esta prueba de mantenimiento es exclusiva de una instalación personal.
  const users=await db.collection('users').select('pushEnabled','pushTokens').limit(2).get();
@@ -97,14 +105,15 @@ async function sendTest(){
  });
  const codes=result.responses.filter(response=>!response.success)
   .map(response=>response.error?.code||'unknown');
- console.log(JSON.stringify({test:true,registered:tokens.length,accepted:result.successCount,failed:result.failureCount,codes}));
- if(result.failureCount)process.exitCode=1;
+ const removed=await removeExpired(users.docs[0].ref,tokens,result.responses);
+ console.log(JSON.stringify({test:true,registered:tokens.length,accepted:result.successCount,failed:result.failureCount,removed,codes}));
+ if(!result.successCount||result.failureCount>removed)process.exitCode=1;
 }
 async function run(){
  if(process.env.MI360_TEST_PUSH==='true')return sendTest();
  const now=limaNow(),users=await db.collection('users').get();
  let sent=0,failed=0,eligible=0;
- let unregistered=0,nothingDue=0;
+ let unregistered=0,nothingDue=0,removed=0,validated=0;
  const deliveryErrors=new Map();
  function countError(error){
   const code=String(error?.code||'unknown');
@@ -115,7 +124,19 @@ async function run(){
   if(!tokens.length){unregistered++;continue;}
   const old=record.sentReminders&&typeof record.sentReminders==='object'?record.sentReminders:{};
   const tasks=collect(record.data||{},old,now);
-  if(!tasks.length){nothingDue++;continue;}
+  if(!tasks.length){
+   nothingDue++;
+   // Al desplegar el envío, valida los registros sin mostrar avisos de prueba.
+   if(process.env.GITHUB_EVENT_NAME==='push'){
+    const result=await messaging.sendEachForMulticast({tokens,data:{type:'validation'}},true);
+    validated+=result.successCount;
+    const expired=await removeExpired(user.ref,tokens,result.responses);
+    removed+=expired;
+    failed+=result.failureCount-expired;
+    for(const response of result.responses)if(!response.success)countError(response.error);
+   }
+   continue;
+  }
   eligible++;
   const count={};
   for(const task of tasks)count[task.type]=(count[task.type]||0)+1;
@@ -144,19 +165,10 @@ async function run(){
    for(const response of result.responses){
     if(!response.success)countError(response.error);
    }
-   const expired=result.responses.flatMap((response,i)=>{
-    const code=String(response.error?.code||'');
-    return !response.success&&(
-     code.includes('registration-token-not-registered')||
-     code.includes('invalid-registration-token')
-    )?[tokens[i]]:[];
-   });
-   if(expired.length){
-    await user.ref.update({pushTokens:admin.firestore.FieldValue.arrayRemove(...expired)});
-   }
+   removed+=await removeExpired(user.ref,tokens,result.responses);
   }catch(error){failed++;countError(error);}
  }
- console.log(JSON.stringify({date:now.date,minuteOfDay:now.minutes,manual,users:users.size,eligible,sent,skipped:unregistered+nothingDue,unregistered,nothingDue,failures:failed,deliveryErrors:Object.fromEntries(deliveryErrors)}));
+ console.log(JSON.stringify({date:now.date,minuteOfDay:now.minutes,manual,users:users.size,eligible,sent,skipped:unregistered+nothingDue,unregistered,nothingDue,validated,removed,failures:failed,deliveryErrors:Object.fromEntries(deliveryErrors)}));
  if(failed>0)process.exitCode=1;
 }
 run().catch(error=>{console.error('Error de recordatorios:',error.message);process.exitCode=1});

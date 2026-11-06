@@ -12,4 +12,4 @@ export const firebaseConfig = {
 
 // Firebase Console → Cloud Messaging → Certificados de inserción web → clave pública.
 // Se necesita esta clave pública para habilitar notificaciones con la app cerrada.
-export const webPushVapidKey = '';
+export const webPushVapidKey = 'BORbJl3dl0xPhb3ZQUO-BV7wBASajxIIhOFV9gsSByMgwDm9vhB7kbmFauuoMopii8nvDRGHEYg7JLZZbEDCTUE';

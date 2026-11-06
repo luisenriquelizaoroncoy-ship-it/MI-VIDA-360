@@ -149,10 +149,48 @@ function formData(form){return Object.fromEntries(new FormData(form).entries())}
 function validateMoney(v,zero=false){let n=Number(v);return Number.isFinite(n)&&n>=(zero?0:0.01)&&n<=999999999?n:null}
 function shiftMonth(ymd,n){const [y,m,d]=ymd.split('-').map(Number);const target=new Date(y,m-1+n,1,12);const last=new Date(target.getFullYear(),target.getMonth()+1,0).getDate();return target.getFullYear()+'-'+String(target.getMonth()+1).padStart(2,'0')+'-'+String(Math.min(d,last)).padStart(2,'0')}
 function generateRecurring(){let changed=false;const horizon=new Date();horizon.setDate(horizon.getDate()+92);const limit=horizon.getFullYear()+'-'+String(horizon.getMonth()+1).padStart(2,'0')+'-'+String(horizon.getDate()).padStart(2,'0');const seen=new Set(state.payments.filter(p=>p.recurrenceFrom).map(p=>p.recurrenceFrom+'|'+p.due));for(const p of [...state.payments]){if(p.recurrence!=='Mensual'||p.recurrenceFrom||!/^\d{4}-\d\d-\d\d$/.test(p.due))continue;for(let n=1;n<=24;n++){const due=shiftMonth(p.due,n);if(due>limit)break;const key=p.id+'|'+due;if(!seen.has(key)){state.payments.push({id:id(),title:p.title,amount:p.amount,due,paid:false,recurrence:'No repetir',recurrenceFrom:p.id});seen.add(key);changed=true}}}if(changed)persist()}
-function dueAlerts(){const today=dateToday();const soon=new Date();soon.setDate(soon.getDate()+7);const limit=soon.getFullYear()+'-'+String(soon.getMonth()+1).padStart(2,'0')+'-'+String(soon.getDate()).padStart(2,'0');return state.payments.filter(p=>!p.paid&&p.due<=limit).sort((a,b)=>a.due.localeCompare(b.due))}
-function alertPanel(){const arr=dueAlerts();return arr.length?'<section class="alertcard"><h2>⚠ Pagos por atender ('+arr.length+')</h2>'+arr.slice(0,5).map(p=>'<div class="alertentry"><span>'+esc(p.title)+' · '+pretty(p.due)+'</span><strong>'+esc(p.due<dateToday()?'Vencido · ':'')+money(p.amount)+'</strong></div>').join('')+'<button class="outline smallbtn" data-tab="pagos" style="margin-top:9px">Ver mis pagos</button></section>':''}
-async function enableNotifications(){if(!('Notification' in window)){alert('Este dispositivo o navegador no admite estas notificaciones. Las alertas seguirán apareciendo dentro de la app.');return}try{const permission=await Notification.requestPermission();if(permission==='granted'){alert('Avisos activados. Se comprobarán al abrir la app; para avisos con la app cerrada se necesitará un servicio adicional.');scanNotifications(true)}else alert('Permiso no concedido. Las alertas dentro de la app siguen disponibles.')}catch(e){alert('No se pudieron activar las notificaciones en este navegador.')}}
-function scanNotifications(force=false){if(!('Notification' in window)||Notification.permission!=='granted'||document.visibilityState==='hidden')return;const due=dueAlerts();if(!due.length)return;const key='mivida360_notice_'+dateToday();if(!force&&localStorage.getItem(key))return;try{new Notification('MI VIDA 360 · Pagos pendientes',{body:due.length+' pago(s) vencidos o próximos. Abre la app para verlos.',tag:'mivida360-due'});localStorage.setItem(key,'1')}catch(e){}}
+function dueAlerts(){
+ const today=dateToday(), soon=new Date();soon.setDate(soon.getDate()+7);
+ const limit=soon.getFullYear()+'-'+String(soon.getMonth()+1).padStart(2,'0')+'-'+String(soon.getDate()).padStart(2,'0');
+ return state.payments.filter(p=>!p.paid&&p.due<=limit).sort((a,b)=>a.due.localeCompare(b.due));
+}
+function allAlerts(){
+ const today=dateToday(),list=[];
+ for(const p of dueAlerts())list.push({title:p.title,sub:'Pago · '+pretty(p.due),detail:p.due<today?'Vencido':money(p.amount),target:'pagos',date:p.due});
+ for(const event of state.events){
+  if(event.completed||!event.date)continue;
+  if(event.date<=today)list.push({title:event.title,sub:'Agenda · '+pretty(event.date)+(event.time?' · '+event.time:''),detail:event.date<today?'Pendiente atrasado':'Pendiente hoy',target:'agenda',date:event.date});
+ }
+ for(const item of state.purchases){
+  if(item.bought||!item.due||item.due>today)continue;
+  list.push({title:item.title,sub:'Compra · '+pretty(item.due),detail:item.due<today?'Fecha límite pasada':'Para hoy',target:'compras',date:item.due});
+ }
+ return list.sort((a,b)=>a.date.localeCompare(b.date));
+}
+function alertPanel(){
+ const items=allAlerts();
+ return items.length?'<section class="alertcard"><h2>⚠ Pendientes por atender ('+items.length+')</h2>'+
+ items.slice(0,6).map(item=>'<div class="alertentry"><span><strong style="color:#273952">'+esc(item.title)+'</strong><br>'+esc(item.sub)+'</span><strong>'+esc(item.detail)+'</strong></div>').join('')+
+ '<div class="toolbar" style="margin-top:10px"><button class="outline smallbtn" data-tab="pagos">Pagos</button><button class="outline smallbtn" data-tab="agenda">Agenda</button><button class="outline smallbtn" data-tab="compras">Compras</button></div></section>':'';
+}
+async function enableNotifications(){
+ if(!('Notification' in window)){alert('Este dispositivo no permite avisos locales. Los pendientes siguen visibles en el panel.');return}
+ try{
+  const permission=await Notification.requestPermission();
+  if(permission==='granted'){alert('Avisos al abrir habilitados. Los avisos con la app cerrada requieren registro push y GitHub Actions.');scanNotifications(true)}
+  else alert('Permiso no concedido. Los avisos del panel siguen disponibles.');
+ }catch(e){alert('No se pudieron activar los avisos locales.')}
+}
+function scanNotifications(force=false){
+ if(!('Notification' in window)||Notification.permission!=='granted'||document.visibilityState==='hidden')return;
+ const due=allAlerts();if(!due.length)return;
+ const key='mivida360_notice_'+(accountUser?.uid||'local')+'_'+dateToday();
+ if(!force&&localStorage.getItem(key))return;
+ try{
+  new Notification('MI VIDA 360 · Pendientes',{body:due.length+' pendiente(s) en pagos, agenda o compras. Entra para revisarlos.',tag:'mivida360-all-due'});
+  localStorage.setItem(key,'1');
+ }catch(e){}
+}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scanNotifications()});
 function handleSubmit(e){if(e.target.id!=='editForm')return;e.preventDefault();let f=e.target,k=f.dataset.kind,obj=formData(f),oldId=f.dataset.id;let old,collection,record;
 if(k==='contribute'){let g=state.goals.find(x=>x.id===obj.goalId);let am=validateMoney(obj.amount);if(!g||am===null)return alert('Ingresa un monto válido.');let delta=obj.direction==='Retirar ahorro'?-am:am;if(goalTotal(g)+delta<0)return alert('El retiro supera el ahorro registrado en la meta.');g.entries=g.entries||[];g.entries.push({id:id(),date:dateToday(),amount:delta});persist();close();render();return;}

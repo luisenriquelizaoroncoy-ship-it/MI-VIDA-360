@@ -77,7 +77,31 @@ function collect(data,old,now){
  if(genericPurchases&&(sunday||manual)&&morning)add('weekly_purchases_'+now.date,'compra pendiente',2);
  return tasks.sort((a,b)=>a.priority-b.priority);
 }
+function registeredTokens(record){
+ if(record.pushEnabled!==true||!Array.isArray(record.pushTokens))return [];
+ return [...new Set(record.pushTokens.filter(token=>typeof token==='string'&&token.length>20))];
+}
+async function sendTest(){
+ // Esta prueba de mantenimiento es exclusiva de una instalación personal.
+ const users=await db.collection('users').select('pushEnabled','pushTokens').limit(2).get();
+ if(users.size!==1)throw new Error('La prueba requiere una única cuenta en esta instalación.');
+ const tokens=registeredTokens(users.docs[0].data());
+ if(!tokens.length)throw new Error('La cuenta todavía no tiene dispositivos registrados.');
+ const result=await messaging.sendEachForMulticast({
+  tokens,
+  data:{
+   title:'MI VIDA 360 · Aviso de prueba',
+   body:'Tu prueba de Mi Vida 360 llegó. Toca para abrir tu agenda.'
+  },
+  webpush:{headers:{Urgency:'high',TTL:'900'}}
+ });
+ const codes=result.responses.filter(response=>!response.success)
+  .map(response=>response.error?.code||'unknown');
+ console.log(JSON.stringify({test:true,registered:tokens.length,accepted:result.successCount,failed:result.failureCount,codes}));
+ if(result.failureCount)process.exitCode=1;
+}
 async function run(){
+ if(process.env.MI360_TEST_PUSH==='true')return sendTest();
  const now=limaNow(),users=await db.collection('users').get();
  let sent=0,failed=0,eligible=0;
  let unregistered=0,nothingDue=0;
@@ -87,9 +111,8 @@ async function run(){
   deliveryErrors.set(code,(deliveryErrors.get(code)||0)+1);
  }
  for(const user of users.docs){
-  const record=user.data(),tokens=Array.isArray(record.pushTokens)
-   ?[...new Set(record.pushTokens.filter(v=>typeof v==='string'&&v.length>20))]:[];
-  if(record.pushEnabled!==true||tokens.length===0){unregistered++;continue;}
+  const record=user.data(),tokens=registeredTokens(record);
+  if(!tokens.length){unregistered++;continue;}
   const old=record.sentReminders&&typeof record.sentReminders==='object'?record.sentReminders:{};
   const tasks=collect(record.data||{},old,now);
   if(!tasks.length){nothingDue++;continue;}

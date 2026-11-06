@@ -5,6 +5,12 @@ on:
     # GitHub Actions puede retrasar o saltar ejecuciones programadas.
     - cron: '3,18,33,48 * * * *'
   workflow_dispatch:
+    inputs:
+      probar_aviso:
+        description: 'Enviar un aviso de prueba a los dispositivos de la cuenta única'
+        type: boolean
+        required: false
+        default: false
   # Al publicar cambios en el envío, procesa los avisos que correspondan a esa hora.
   push:
     branches: [main]
@@ -29,5 +35,6 @@ jobs:
         run: npm install --no-save --ignore-scripts firebase-admin@13
       - name: Revisar pagos, agenda y compras
         env:
+          MI360_TEST_PUSH: ${{ (github.event_name == 'workflow_dispatch' && inputs.probar_aviso) || (github.event_name == 'push' && github.event.head_commit.message == 'Enviar prueba solicitada de MI VIDA 360') }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: node scripts/send-reminders.cjs

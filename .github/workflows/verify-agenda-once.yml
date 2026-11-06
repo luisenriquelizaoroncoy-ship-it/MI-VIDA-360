@@ -1,0 +1,26 @@
+name: Verificar la agenda publicada
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/verify-agenda-once.yml']
+permissions:
+  contents: read
+  actions: write
+jobs:
+  verificar:
+    if: github.event.head_commit.message == 'Publicar mejoras de saldo, pagos, sesión y seguimiento de avisos'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --ignore-scripts firebase-admin@13
+      - name: Verificar programador y aviso real
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/reminders.yml" --jq '"ESTADO_PROGRAMADOR " + .state'
+          node scripts/verify-agenda-once.cjs

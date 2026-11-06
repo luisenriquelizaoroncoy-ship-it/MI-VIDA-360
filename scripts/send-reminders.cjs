@@ -10,7 +10,7 @@ if(credential.project_id!=='mi-vida-360-9b9ab'){
 }
 admin.initializeApp({credential:admin.credential.cert(credential)});
 const db=admin.firestore(),messaging=admin.messaging();
-const manual=process.env.GITHUB_EVENT_NAME==='workflow_dispatch';
+const manual=process.env.GITHUB_EVENT_NAME==='workflow_dispatch'&&process.env.MI360_RESPECT_TIME!=='true';
 function limaNow(){
  const parts=new Intl.DateTimeFormat('en-GB',{
   timeZone:'America/Lima',year:'numeric',month:'2-digit',day:'2-digit',
@@ -34,7 +34,8 @@ function appointmentMinutes(s){
  const [h,m]=s.split(':').map(Number);
  return h<24&&m<60?h*60+m:null;
 }
-function isMorning(now){return manual||(now.minutes>=9*60&&now.minutes<10*60);}
+// Recuperar la revisión de la mañana si el programador se retrasa; cada clave se envía una vez.
+function isMorning(now){return manual||(now.minutes>=9*60&&now.minutes<22*60);}
 function collect(data,old,now){
  const tasks=[];
  function add(key,type,priority){if(!old[key])tasks.push({key,type,priority});}
@@ -56,9 +57,8 @@ function collect(data,old,now){
    if(scheduled===null){
     if(morning)add('agenda_today_'+item.id+'_'+item.date,'actividad',0);
    } else {
-    // Con el margen de 30 minutos previos y 90 posteriores se toleran retrasos de Actions.
-    const difference=scheduled-now.minutes;
-    if(difference<=30&&difference>=-90)add('agenda_time_'+item.id+'_'+item.date+'_'+item.time,'actividad',0);
+    // Se envía desde la hora elegida, en la siguiente revisión del mismo día.
+    if(now.minutes>=scheduled)add('agenda_time_'+item.id+'_'+item.date+'_'+item.time,'actividad',0);
    }
   }
   if(days<0&&days>=-7&&morning)add('agenda_overdue_'+item.id+'_'+now.date,'actividad pendiente',0);
@@ -98,11 +98,13 @@ async function sendTest(){
  const result=await messaging.sendEachForMulticast({
   tokens,
   data:{
+   owner:users.docs[0].id,
    title:'MI VIDA 360 · Aviso de prueba',
    body:'Tu prueba de Mi Vida 360 llegó. Toca para abrir tu agenda.'
   },
   webpush:{headers:{Urgency:'high',TTL:'900'}}
  });
+ if(result.successCount)await users.docs[0].ref.update({'reminderStatus.sentAt':admin.firestore.FieldValue.serverTimestamp()});
  const codes=result.responses.filter(response=>!response.success)
   .map(response=>response.error?.code||'unknown');
  const removed=await removeExpired(users.docs[0].ref,tokens,result.responses);
@@ -121,6 +123,10 @@ async function run(){
  }
  for(const user of users.docs){
   const record=user.data(),tokens=registeredTokens(record);
+  const stamp=admin.firestore.FieldValue.serverTimestamp();
+  const status={'reminderStatus.checkedAt':stamp};
+  if(process.env.GITHUB_EVENT_NAME==='schedule')status['reminderStatus.scheduledAt']=stamp;
+  await user.ref.update(status);
   if(!tokens.length){unregistered++;continue;}
   const old=record.sentReminders&&typeof record.sentReminders==='object'?record.sentReminders:{};
   const tasks=collect(record.data||{},old,now);
@@ -145,6 +151,7 @@ async function run(){
    const result=await messaging.sendEachForMulticast({
     tokens,
     data:{
+     owner:user.id,
      title:'MI VIDA 360 · Tienes pendientes',
      body:description+'. Abre la app para revisarlos.',
      url:'https://luisenriquelizaoroncoy-ship-it.github.io/MI-VIDA-360/'
@@ -158,7 +165,7 @@ async function run(){
      if(Number.isFinite(age)&&age<=0&&age>=-45)updated[key]=date;
     }
     for(const task of tasks)updated[task.key]=now.date;
-    await user.ref.set({sentReminders:updated},{merge:true});
+    await user.ref.update({sentReminders:updated,'reminderStatus.sentAt':stamp,'reminderStatus.sentBy':process.env.GITHUB_EVENT_NAME||'manual'});
     sent+=result.successCount;
    }
    failed+=result.failureCount;

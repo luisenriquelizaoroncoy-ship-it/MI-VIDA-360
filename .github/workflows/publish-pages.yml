@@ -19,6 +19,14 @@ jobs:
     steps:
       - name: Obtener el código
         uses: actions/checkout@v4
+      - name: Probar pagos, cuenta y avisos
+        run: |
+          node --test tests/*.test.cjs
+          npm install --prefix "$RUNNER_TEMP/mi360-browser" --no-save --ignore-scripts playwright-core@1.56.1
+          python3 -m http.server 4173 --bind 127.0.0.1 > /dev/null 2>&1 &
+          server=$!
+          trap 'kill "$server"' EXIT
+          NODE_PATH="$RUNNER_TEMP/mi360-browser/node_modules" node tests/browser.cjs
       - name: Preparar GitHub Pages
         uses: actions/configure-pages@v5
       - name: Subir aplicación

@@ -6,6 +6,10 @@ on:
     - cron: '3,18,33,48 * * * *'
   workflow_dispatch:
     inputs:
+      revisar_hora:
+        description: 'Aplicar el horario normal de Lima en esta revisión'
+        type: boolean
+        default: false
       probar_aviso:
         description: 'Enviar un aviso de prueba a los dispositivos de la cuenta única'
         type: boolean
@@ -35,6 +39,7 @@ jobs:
         run: npm install --no-save --ignore-scripts firebase-admin@13
       - name: Revisar pagos, agenda y compras
         env:
+          MI360_RESPECT_TIME: ${{ inputs.revisar_hora }}
           MI360_TEST_PUSH: ${{ github.event_name == 'workflow_dispatch' && inputs.probar_aviso }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: node scripts/send-reminders.cjs
